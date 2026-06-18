@@ -87,7 +87,7 @@ def find_global_eligibility(text: str) -> tuple[str, str]:
     for term in GLOBAL_ELIGIBILITY_TERMS:
         if term in lowered:
             return "eligible", term
-    return "manual_review", "No explicit Nigeria/global eligibility language found."
+    return "manual_review", "No explicit candidate-region or global eligibility language found."
 
 
 def find_scam_risk(text: str) -> tuple[str, str]:

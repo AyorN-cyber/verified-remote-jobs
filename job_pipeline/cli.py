@@ -24,7 +24,14 @@ def main() -> None:
     settings = get_settings()
     if args.no_ai:
         settings = replace(settings, enable_ai=False)
-    candidate = CandidateProfile()
+    candidate = CandidateProfile(
+        name=settings.candidate_name,
+        location=settings.candidate_location,
+        country=settings.candidate_country,
+        target_work_regions=settings.target_work_regions,
+        target_roles=settings.target_roles,
+        strengths=settings.candidate_strengths,
+    )
     print("Discovering leads...")
     leads = discover_all(settings, include_watchlist=args.include_watchlist)
     leads = prioritize_leads([lead for lead in leads if lead.job_url])[: args.limit]

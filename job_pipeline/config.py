@@ -33,7 +33,27 @@ class Settings:
     freshness_hours: int = 10
     max_results_per_source: int = 50
     request_timeout_seconds: int = 25
-    output_dir: Path = ROOT / "Find Jobs - CV" / "Olabisi Odogbo" / "verified_pipeline_output"
+    output_dir: Path = ROOT / "verified_pipeline_output"
+    candidate_name: str = "Sample Candidate"
+    candidate_location: str = "Remote"
+    candidate_country: str = ""
+    target_work_regions: tuple[str, ...] = ("Worldwide",)
+    target_roles: tuple[str, ...] = (
+        "customer support",
+        "customer success",
+        "crm specialist",
+        "virtual assistant",
+        "operations assistant",
+        "sales support",
+    )
+    candidate_strengths: tuple[str, ...] = (
+        "customer support",
+        "CRM hygiene",
+        "email, phone, and chat support",
+        "client follow-up",
+        "calendar and admin coordination",
+        "remote work discipline",
+    )
 
 
 def get_settings() -> Settings:
@@ -47,4 +67,26 @@ def get_settings() -> Settings:
         freshness_hours=int(os.getenv("FRESHNESS_HOURS", "10")),
         max_results_per_source=int(os.getenv("MAX_RESULTS_PER_SOURCE", "50")),
         request_timeout_seconds=int(os.getenv("REQUEST_TIMEOUT_SECONDS", "25")),
+        output_dir=Path(os.getenv("OUTPUT_DIR", str(ROOT / "verified_pipeline_output"))),
+        candidate_name=os.getenv("CANDIDATE_NAME", "Sample Candidate").strip() or "Sample Candidate",
+        candidate_location=os.getenv("CANDIDATE_LOCATION", "Remote").strip() or "Remote",
+        candidate_country=os.getenv("CANDIDATE_COUNTRY", "").strip(),
+        target_work_regions=split_env_tuple(os.getenv("TARGET_WORK_REGIONS", "Worldwide")),
+        target_roles=split_env_tuple(
+            os.getenv(
+                "TARGET_ROLES",
+                "customer support,customer success,crm specialist,virtual assistant,operations assistant,sales support",
+            )
+        ),
+        candidate_strengths=split_env_tuple(
+            os.getenv(
+                "CANDIDATE_STRENGTHS",
+                "customer support,CRM hygiene,email phone and chat support,client follow-up,calendar and admin coordination,remote work discipline",
+            )
+        ),
     )
+
+
+def split_env_tuple(value: str) -> tuple[str, ...]:
+    items = [item.strip() for item in value.split(",") if item.strip()]
+    return tuple(items)

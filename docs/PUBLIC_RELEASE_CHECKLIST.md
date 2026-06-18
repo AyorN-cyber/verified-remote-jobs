@@ -28,11 +28,12 @@ Use this before pushing the project to a public GitHub repository.
 
 1. Run `python -m unittest discover -s tests`.
 2. Confirm `.env.local` is ignored.
-3. Confirm `Find Jobs - CV/` is ignored.
+3. Confirm private CV folders and generated outputs are ignored.
 4. Run a secret scan with a tool such as Gitleaks or GitHub secret scanning.
 5. Create a fresh public repository instead of publishing this whole working folder if private files were ever committed.
 6. Add screenshots only after redacting keys, personal emails, account IDs, and candidate details.
 7. Keep sample outputs synthetic. Do not use a real candidate CV or real private search history as demo data.
+8. Keep candidate-specific defaults out of the public repo. Use `.env.local` for local runs.
 
 ## Recommended Repository Shape
 

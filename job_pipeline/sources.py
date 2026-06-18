@@ -162,8 +162,8 @@ def discover_serpapi(settings: Settings) -> list[SourceLead]:
         return []
     queries = [
         'site:greenhouse.io "customer support" "remote" "worldwide"',
-        'site:lever.co "customer success" "remote" "Africa"',
-        'site:jobs.ashbyhq.com "customer support" "remote" "Nigeria"',
+        'site:lever.co "customer success" "remote" "worldwide"',
+        'site:jobs.ashbyhq.com "customer support" "remote" "global"',
         'site:workable.com "HubSpot" "remote" "customer"',
         'site:smartrecruiters.com "customer support" "remote" "worldwide"',
     ]

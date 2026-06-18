@@ -7,21 +7,22 @@ from typing import Any
 
 @dataclass
 class CandidateProfile:
-    name: str = "Olabisi Odogbo"
-    location: str = "Lagos, Nigeria"
+    name: str = "Sample Candidate"
+    location: str = "Remote"
+    country: str = ""
+    target_work_regions: tuple[str, ...] = ("Worldwide",)
     target_roles: tuple[str, ...] = (
         "customer support",
         "customer success",
         "crm specialist",
-        "hubspot",
         "virtual assistant",
         "operations assistant",
         "sales support",
     )
     strengths: tuple[str, ...] = (
-        "HubSpot certification",
+        "customer support",
         "CRM hygiene",
-        "WhatsApp, email, phone, and chat support",
+        "email, phone, and chat support",
         "client follow-up",
         "calendar and admin coordination",
         "remote work discipline",

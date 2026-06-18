@@ -9,6 +9,7 @@ Build a web app with:
 - CV upload or pasted profile
 - target role selection
 - target country/global eligibility settings
+- candidate country and target work-region settings
 - freshness window setting
 - API key settings or hosted credits
 - scan progress screen

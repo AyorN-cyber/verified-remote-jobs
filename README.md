@@ -1,6 +1,6 @@
 # Verified Global Remote Jobs Pipeline
 
-This project discovers and verifies remote job prospects for a candidate in Nigeria. It is designed to reject stale, fake, paywalled, region-restricted, or misleading listings before they reach the candidate.
+This project discovers and verifies remote job prospects for candidates in any region. It is designed to reject stale, fake, paywalled, region-restricted, or misleading listings before they reach the candidate.
 
 ## Safety Rule
 
@@ -30,6 +30,17 @@ SERPAPI_API_KEY=your_serpapi_key
 
 The pipeline works without AI keys, but Claude improves extraction of eligibility evidence, candidate fit, and outreach strategy.
 
+Configure the candidate's location and target regions for each run:
+
+```env
+CANDIDATE_NAME=Sample Candidate
+CANDIDATE_LOCATION=Remote
+CANDIDATE_COUNTRY=
+TARGET_WORK_REGIONS=Worldwide
+TARGET_ROLES=customer support,customer success,crm specialist,virtual assistant,operations assistant,sales support
+CANDIDATE_STRENGTHS=customer support,CRM hygiene,email phone and chat support,client follow-up,calendar and admin coordination,remote work discipline
+```
+
 ## Run
 
 ```powershell
@@ -51,7 +62,7 @@ python verified_jobs_pipeline.py --limit 25 --include-watchlist
 Outputs are written to:
 
 ```text
-Find Jobs - CV/Olabisi Odogbo/verified_pipeline_output/
+verified_pipeline_output/
 ```
 
 The output files are:
@@ -75,13 +86,15 @@ Each lead is checked for:
 - posting freshness within `FRESHNESS_HOURS`, default `10`
 - official ATS or company-domain evidence
 - apply link opens successfully and does not remain trapped on a job-board page
-- Nigeria/global eligibility language
+- candidate-region/global eligibility language
 - region restrictions such as US-only, Canada-only, UK-only, EU-only, work-authorization-only, hybrid, or onsite
 - scam signals such as payment requests, fake checks, crypto, OTP, BVN, forced Telegram/WhatsApp-only process, or equipment purchase
 
 Only `approved` prospects should be sent to the candidate. `manual_review` leads require a human check. `rejected` leads are kept for audit.
 
 For third-party boards, the verifier parses the job page for explicit apply links, follows redirects, and prefers trusted ATS or company-domain targets. Board-only apply paths are rejected until an official application route is found.
+
+The public project is region-agnostic. Set `CANDIDATE_COUNTRY` and `TARGET_WORK_REGIONS` for your own use case.
 
 ## Source Lanes
 

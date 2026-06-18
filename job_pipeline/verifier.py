@@ -81,7 +81,7 @@ def verify_lead(settings: Settings, lead: SourceLead, candidate: CandidateProfil
     )
     apply_strategy = ai_data.get(
         "apply_strategy",
-        "Apply through the official application route only after confirming the role is still open and accepts Nigeria-based remote applicants.",
+        "Apply through the official application route only after confirming the role is still open and accepts the candidate's location or target work region.",
     )
     linkedin_message = ai_data.get(
         "linkedin_outreach_message",
@@ -89,7 +89,7 @@ def verify_lead(settings: Settings, lead: SourceLead, candidate: CandidateProfil
     )
     email_message = ai_data.get(
         "email_followup_message",
-        "Hello Hiring Team,\n\nI applied for this role and wanted to add a short note on fit. I have experience with customer support, CRM hygiene, HubSpot, client follow-up, and remote coordination. I would appreciate the opportunity to discuss how I can support your team.\n\nBest regards,\nOlabisi Odogbo",
+        f"Hello Hiring Team,\n\nI applied for this role and wanted to add a short note on fit. I have experience with customer support, CRM hygiene, client follow-up, and remote coordination. I would appreciate the opportunity to discuss how I can support your team.\n\nBest regards,\n{candidate.name}",
     )
     materials = ai_data.get(
         "materials_to_prepare",

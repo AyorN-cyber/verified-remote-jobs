@@ -21,6 +21,8 @@ def analyze_with_claude(
         "candidate": {
             "name": candidate.name,
             "location": candidate.location,
+            "country": candidate.country,
+            "target_work_regions": candidate.target_work_regions,
             "target_roles": candidate.target_roles,
             "strengths": candidate.strengths,
         },
