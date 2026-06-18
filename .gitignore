@@ -1,0 +1,21 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+~$*.docx
+tmp_export_test/
+
+# Private candidate files and generated prospect packs.
+Find Jobs - CV/
+*.docx
+*.xlsx
+*.csv
+!job_pipeline/company_watchlist.csv
+
+# Runtime outputs and local caches.
+verified_pipeline_output/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
