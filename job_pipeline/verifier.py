@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from datetime import timedelta
 from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse
 
 from .ai import analyze_with_claude
-from .apply_links import BOARD_HOSTS, TRUSTED_ATS_HOSTS, is_board_host, resolve_apply_url
+from .apply_links import BOARD_HOSTS, TRUSTED_ATS_HOSTS, is_board_host, is_low_trust_host, resolve_apply_url
 from .config import Settings
 from .http import fetch_page
 from .models import CandidateProfile, SourceLead, VerifiedProspect
@@ -205,6 +206,9 @@ def check_freshness(lead: SourceLead, max_hours: int) -> tuple[str, str]:
 
 def parse_datetime(raw: str) -> datetime | None:
     raw = raw.strip()
+    relative = parse_relative_datetime(raw)
+    if relative:
+        return relative
     if raw.isdigit():
         try:
             value = int(raw)
@@ -221,6 +225,33 @@ def parse_datetime(raw: str) -> datetime | None:
             return parser(raw)
         except (ValueError, TypeError, IndexError, OverflowError):
             continue
+    return None
+
+
+def parse_relative_datetime(raw: str) -> datetime | None:
+    lowered = raw.strip().lower()
+    now = datetime.now(timezone.utc)
+    if lowered in {"just posted", "posted just now", "just now", "today"}:
+        return now
+    parts = lowered.split()
+    if len(parts) < 2:
+        return None
+    try:
+        amount = int(parts[0])
+    except ValueError:
+        if parts[0] in {"a", "an", "one"}:
+            amount = 1
+        else:
+            return None
+    unit = parts[1].rstrip("s")
+    if unit in {"minute", "min"}:
+        return now - timedelta(minutes=amount)
+    if unit in {"hour", "hr"}:
+        return now - timedelta(hours=amount)
+    if unit == "day":
+        return now - timedelta(days=amount)
+    if unit == "week":
+        return now - timedelta(weeks=amount)
     return None
 
 
@@ -252,4 +283,6 @@ def check_apply_link(original_url: str, final_url: str, ok: bool, status_code: i
         return f"rejected_apply_link_still_on_job_board:{host}"
     if any(host.endswith(ats) for ats in TRUSTED_ATS_HOSTS):
         return f"verified_trusted_ats:{host}; {evidence}"
+    if is_low_trust_host(host):
+        return f"rejected_low_trust_apply_domain:{host}"
     return f"verified_opened_manual_domain_check_needed:{host}; {evidence}"

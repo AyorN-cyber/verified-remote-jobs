@@ -36,6 +36,13 @@ TRUSTED_ATS_HOSTS = (
     "breezy.hr",
 )
 
+LOW_TRUST_HOSTS = (
+    "frontendnode-production.up.railway.app",
+    "lovestoblog.com",
+    "skillorbit",
+    "blipforge",
+)
+
 APPLY_TERMS = (
     "apply",
     "apply now",
@@ -179,6 +186,10 @@ def is_board_host(host: str) -> bool:
 
 def is_trusted_ats_host(host: str) -> bool:
     return any(host == ats or host.endswith(f".{ats}") for ats in TRUSTED_ATS_HOSTS)
+
+
+def is_low_trust_host(host: str) -> bool:
+    return any(marker in host for marker in LOW_TRUST_HOSTS)
 
 
 def host_of(url: str) -> str:

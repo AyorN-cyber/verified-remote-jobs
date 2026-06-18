@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import replace
 from datetime import datetime, timezone
+from datetime import timedelta
 from email.utils import parsedate_to_datetime
 
 from .config import get_settings
@@ -78,6 +79,7 @@ def lead_priority(lead: SourceLead) -> tuple[int, float]:
     source_bonus = {
         "SerpAPI targeted search": 90,
         "We Work Remotely RSS": 80,
+        "SerpAPI Google Jobs": 85,
         "Jobicy": 70,
         "Remotive": 60,
         "RemoteOK": 40,
@@ -101,6 +103,9 @@ def estimate_age_hours(raw: str) -> float | None:
 
 def parse_datetime(raw: str) -> datetime | None:
     raw = raw.strip()
+    relative = parse_relative_datetime(raw)
+    if relative:
+        return relative
     if raw.isdigit():
         try:
             value = int(raw)
@@ -117,4 +122,31 @@ def parse_datetime(raw: str) -> datetime | None:
             return parser(raw)
         except (ValueError, TypeError, IndexError, OverflowError):
             continue
+    return None
+
+
+def parse_relative_datetime(raw: str) -> datetime | None:
+    lowered = raw.strip().lower()
+    now = datetime.now(timezone.utc)
+    if lowered in {"just posted", "posted just now", "just now", "today"}:
+        return now
+    parts = lowered.split()
+    if len(parts) < 2:
+        return None
+    try:
+        amount = int(parts[0])
+    except ValueError:
+        if parts[0] in {"a", "an", "one"}:
+            amount = 1
+        else:
+            return None
+    unit = parts[1].rstrip("s")
+    if unit in {"minute", "min"}:
+        return now - timedelta(minutes=amount)
+    if unit in {"hour", "hr"}:
+        return now - timedelta(hours=amount)
+    if unit == "day":
+        return now - timedelta(days=amount)
+    if unit == "week":
+        return now - timedelta(weeks=amount)
     return None

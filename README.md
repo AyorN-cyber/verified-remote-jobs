@@ -104,6 +104,7 @@ The pipeline currently supports:
 - Remotive API
 - Jobicy API
 - We Work Remotely RSS
+- SerpAPI Google Jobs, when configured
 - SerpAPI targeted search, when configured
 - company watchlist review
 

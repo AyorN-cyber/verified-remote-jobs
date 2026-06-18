@@ -190,6 +190,68 @@ def discover_serpapi(settings: Settings) -> list[SourceLead]:
     return leads[: settings.max_results_per_source]
 
 
+def discover_serpapi_google_jobs(settings: Settings) -> list[SourceLead]:
+    if not settings.serpapi_api_key:
+        return []
+    queries = [
+        "remote customer support worldwide",
+        "remote customer success worldwide",
+        "remote virtual assistant worldwide",
+        "remote CRM specialist worldwide",
+        "remote HubSpot specialist worldwide",
+        "remote customer operations worldwide",
+    ]
+    leads: list[SourceLead] = []
+    for query in queries:
+        params = urlencode(
+            {
+                "engine": "google_jobs",
+                "q": query,
+                "location": settings.candidate_country or settings.candidate_location or "Remote",
+                "hl": "en",
+                "api_key": settings.serpapi_api_key,
+            }
+        )
+        data = _get_json(f"https://serpapi.com/search.json?{params}", settings.request_timeout_seconds)
+        jobs = data.get("jobs_results", []) if isinstance(data, dict) else []
+        for item in jobs:
+            if not isinstance(item, dict):
+                continue
+            detected = item.get("detected_extensions") or {}
+            apply_options = item.get("apply_options") or []
+            apply_url = ""
+            if apply_options and isinstance(apply_options[0], dict):
+                apply_url = _safe_str(apply_options[0].get("link"))
+            highlights = item.get("job_highlights") or []
+            highlight_text = " ".join(_safe_str(section) for section in highlights)
+            leads.append(
+                SourceLead(
+                    source="SerpAPI Google Jobs",
+                    title=_safe_str(item.get("title")),
+                    company=_safe_str(item.get("company_name")),
+                    job_url=_safe_str(item.get("share_link") or apply_url),
+                    apply_url=apply_url,
+                    location=_safe_str(item.get("location")),
+                    salary=_safe_str(detected.get("salary")),
+                    description=" ".join(
+                        filter(
+                            None,
+                            [
+                                _safe_str(item.get("description")),
+                                highlight_text,
+                                " ".join(_safe_str(ext) for ext in item.get("extensions", [])),
+                            ],
+                        )
+                    ),
+                    posted_at=_safe_str(detected.get("posted_at")),
+                    raw={"query": query, "job": item},
+                )
+            )
+            if len(leads) >= settings.max_results_per_source:
+                return leads
+    return leads[: settings.max_results_per_source]
+
+
 def discover_company_watchlist(settings: Settings) -> list[SourceLead]:
     path = ROOT / "job_pipeline" / "company_watchlist.csv"
     if not path.exists():
@@ -221,6 +283,7 @@ def discover_all(settings: Settings, include_watchlist: bool = False) -> list[So
         discover_remotive,
         discover_jobicy,
         discover_weworkremotely,
+        discover_serpapi_google_jobs,
         discover_serpapi,
     )
     if include_watchlist:
