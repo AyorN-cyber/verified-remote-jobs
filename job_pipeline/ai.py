@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import requests
 
 from .config import Settings
@@ -70,7 +71,7 @@ def analyze_with_claude(
             "content-type": "application/json",
         },
         json={
-            "model": "claude-3-5-haiku-latest",
+            "model": settings.ai_model,
             "max_tokens": 900,
             "temperature": 0,
             "messages": [{"role": "user", "content": json.dumps(prompt, ensure_ascii=False)}],
@@ -79,8 +80,29 @@ def analyze_with_claude(
     response.raise_for_status()
     data = response.json()
     text = data.get("content", [{}])[0].get("text", "{}")
+    text = extract_json_text(text)
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
         return {"raw_ai_response": text[:1000]}
-    return {str(k): str(v) for k, v in parsed.items()}
+    return {str(k): stringify_value(v) for k, v in parsed.items()}
+
+
+def extract_json_text(text: str) -> str:
+    stripped = text.strip()
+    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", stripped, flags=re.DOTALL)
+    if fenced:
+        return fenced.group(1)
+    start = stripped.find("{")
+    end = stripped.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return stripped[start : end + 1]
+    return stripped
+
+
+def stringify_value(value: object) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value)

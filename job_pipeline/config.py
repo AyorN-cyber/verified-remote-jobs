@@ -29,6 +29,7 @@ class Settings:
     serpapi_api_key: str
     brave_search_api_key: str
     ai_provider: str = "claude"
+    ai_model: str = "claude-haiku-4-5-20251001"
     enable_ai: bool = True
     freshness_hours: int = 10
     max_results_per_source: int = 50
@@ -63,6 +64,7 @@ def get_settings() -> Settings:
         serpapi_api_key=os.getenv("SERPAPI_API_KEY", "").strip(),
         brave_search_api_key=os.getenv("BRAVE_SEARCH_API_KEY", "").strip(),
         ai_provider=os.getenv("AI_PROVIDER", "claude").strip() or "claude",
+        ai_model=os.getenv("AI_MODEL", "claude-haiku-4-5-20251001").strip() or "claude-haiku-4-5-20251001",
         enable_ai=os.getenv("ENABLE_AI", "true").strip().lower() not in {"0", "false", "no"},
         freshness_hours=int(os.getenv("FRESHNESS_HOURS", "10")),
         max_results_per_source=int(os.getenv("MAX_RESULTS_PER_SOURCE", "50")),

@@ -35,6 +35,42 @@ def _safe_str(value: object) -> str:
     return str(value)
 
 
+ROLE_HINTS = (
+    "customer",
+    "support",
+    "success",
+    "client",
+    "specialist",
+    "representative",
+    "manager",
+    "consultant",
+    "assistant",
+    "coordinator",
+    "operations",
+    "sales",
+    "hubspot",
+    "crm",
+    "onboarding",
+)
+
+
+def split_search_title(title: str) -> tuple[str, str]:
+    clean = title.replace("Job Application for ", "").strip()
+    for marker in (" @ ", " at "):
+        if marker in clean:
+            left, right = clean.rsplit(marker, 1)
+            return right.strip(), left.strip()
+    if " - " in clean:
+        left, right = clean.rsplit(" - ", 1)
+        left_has_role = any(hint in left.lower() for hint in ROLE_HINTS)
+        right_has_role = any(hint in right.lower() for hint in ROLE_HINTS)
+        if left_has_role and not right_has_role:
+            return right.strip(), left.strip()
+        if right_has_role and not left_has_role:
+            return left.strip(), right.strip()
+    return "", clean
+
+
 def discover_remoteok(settings: Settings) -> list[SourceLead]:
     data = _get_json("https://remoteok.com/api", settings.request_timeout_seconds)
     leads: list[SourceLead] = []
@@ -166,20 +202,41 @@ def discover_serpapi(settings: Settings) -> list[SourceLead]:
         'site:jobs.ashbyhq.com "customer support" "remote" "global"',
         'site:workable.com "HubSpot" "remote" "customer"',
         'site:smartrecruiters.com "customer support" "remote" "worldwide"',
+        'site:jobs.ashbyhq.com "customer success" "remote" "worldwide"',
+        'site:jobs.ashbyhq.com "customer support" "remote"',
+        'site:boards.greenhouse.io "customer success" "remote"',
+        'site:boards.greenhouse.io "customer support" "remote"',
+        'site:jobs.lever.co "customer operations" "remote"',
+        'site:jobs.lever.co "customer support" "remote"',
+        'site:apply.workable.com "customer support" "remote"',
+        'site:apply.workable.com "customer success" "remote"',
+        'site:jobs.smartrecruiters.com "customer support" "remote"',
+        'site:jobs.ashbyhq.com "virtual assistant" "remote"',
+        'site:jobs.lever.co "virtual assistant" "remote"',
+        'site:boards.greenhouse.io "hubspot" "remote"',
     ]
     leads: list[SourceLead] = []
     for query in queries:
-        params = urlencode({"engine": "google", "q": query, "api_key": settings.serpapi_api_key, "num": 10})
+        params = urlencode(
+            {
+                "engine": "google",
+                "q": query,
+                "api_key": settings.serpapi_api_key,
+                "num": 10,
+                "tbs": "qdr:d",
+            }
+        )
         data = _get_json(f"https://serpapi.com/search.json?{params}", settings.request_timeout_seconds)
         results = data.get("organic_results", []) if isinstance(data, dict) else []
         for result in results:
             if not isinstance(result, dict):
                 continue
+            company, title = split_search_title(_safe_str(result.get("title")))
             leads.append(
                 SourceLead(
                     source="SerpAPI targeted search",
-                    title=_safe_str(result.get("title")),
-                    company="",
+                    title=title,
+                    company=company,
                     job_url=_safe_str(result.get("link")),
                     apply_url=_safe_str(result.get("link")),
                     description=_safe_str(result.get("snippet")),

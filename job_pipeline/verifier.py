@@ -72,9 +72,8 @@ def verify_lead(settings: Settings, lead: SourceLead, candidate: CandidateProfil
         status = "manual_review"
         confidence = 70
 
-    candidate_fit = ai_data.get(
-        "candidate_fit_summary",
-        "Potential fit if the role is customer support, CRM, customer success, virtual assistant, or operations support.",
+    candidate_fit = ai_data.get("candidate_fit_summary") or ai_data.get("role_match") or (
+        "Potential fit if the role is customer support, CRM, customer success, virtual assistant, or operations support."
     )
     verification_summary = ai_data.get(
         "verification_summary",
