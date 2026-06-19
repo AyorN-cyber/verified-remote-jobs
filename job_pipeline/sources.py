@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import urlencode
@@ -69,6 +70,34 @@ def split_search_title(title: str) -> tuple[str, str]:
         if right_has_role and not left_has_role:
             return left.strip(), right.strip()
     return "", clean
+
+
+def company_from_url(url: str) -> str:
+    lowered = url.lower()
+    markers = (
+        ("jobs.ashbyhq.com/", 0),
+        ("jobs.lever.co/", 0),
+        ("apply.workable.com/", 0),
+        ("boards.greenhouse.io/", 0),
+        ("job-boards.greenhouse.io/", 0),
+        ("jobs.smartrecruiters.com/", 0),
+        ("jobs.teamtailor.com/", 0),
+        ("recruitee.com/o/", 0),
+    )
+    for marker, index in markers:
+        if marker in lowered:
+            tail = url.split(marker, 1)[1].strip("/")
+            parts = [part for part in tail.split("/") if part]
+            if len(parts) > index:
+                return prettify_company_slug(parts[index])
+    return ""
+
+
+def prettify_company_slug(value: str) -> str:
+    value = re.sub(r"\d+$", "", value)
+    clean = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", value)
+    clean = clean.replace("-", " ").replace("_", " ").strip()
+    return " ".join(part.capitalize() for part in clean.split())
 
 
 def discover_remoteok(settings: Settings) -> list[SourceLead]:
@@ -204,16 +233,45 @@ def discover_serpapi(settings: Settings) -> list[SourceLead]:
         'site:smartrecruiters.com "customer support" "remote" "worldwide"',
         'site:jobs.ashbyhq.com "customer success" "remote" "worldwide"',
         'site:jobs.ashbyhq.com "customer support" "remote"',
+        'site:jobs.ashbyhq.com "customer experience" "remote"',
+        'site:jobs.ashbyhq.com "client success" "remote"',
+        'site:jobs.ashbyhq.com "onboarding specialist" "remote"',
+        'site:jobs.ashbyhq.com "technical support" "remote"',
         'site:boards.greenhouse.io "customer success" "remote"',
         'site:boards.greenhouse.io "customer support" "remote"',
+        'site:boards.greenhouse.io "customer experience" "remote"',
+        'site:boards.greenhouse.io "client success" "remote"',
+        'site:boards.greenhouse.io "onboarding specialist" "remote"',
+        'site:boards.greenhouse.io "technical support" "remote"',
         'site:jobs.lever.co "customer operations" "remote"',
         'site:jobs.lever.co "customer support" "remote"',
+        'site:jobs.lever.co "customer success" "remote"',
+        'site:jobs.lever.co "client success" "remote"',
+        'site:jobs.lever.co "onboarding specialist" "remote"',
+        'site:jobs.lever.co "technical support" "remote"',
         'site:apply.workable.com "customer support" "remote"',
         'site:apply.workable.com "customer success" "remote"',
+        'site:apply.workable.com "customer experience" "remote"',
+        'site:apply.workable.com "client success" "remote"',
+        'site:apply.workable.com "onboarding specialist" "remote"',
+        'site:apply.workable.com "technical support" "remote"',
         'site:jobs.smartrecruiters.com "customer support" "remote"',
+        'site:jobs.smartrecruiters.com "customer success" "remote"',
+        'site:jobs.smartrecruiters.com "customer experience" "remote"',
+        'site:jobs.smartrecruiters.com "technical support" "remote"',
+        'site:jobs.teamtailor.com "customer support" "remote"',
+        'site:jobs.teamtailor.com "customer success" "remote"',
+        'site:*.recruitee.com "customer support" "remote"',
+        'site:*.breezy.hr "customer support" "remote"',
+        'site:*.bamboohr.com/jobs "customer support" "remote"',
+        'site:*.personio.com "customer support" "remote"',
         'site:jobs.ashbyhq.com "virtual assistant" "remote"',
         'site:jobs.lever.co "virtual assistant" "remote"',
         'site:boards.greenhouse.io "hubspot" "remote"',
+        'site:reddit.com/r/forhire "remote" "customer support" "hiring"',
+        'site:reddit.com/r/remotework "remote" "customer support" "hiring"',
+        'site:linkedin.com/jobs "customer support" "remote" "worldwide"',
+        'site:linkedin.com/jobs "customer success" "remote" "worldwide"',
     ]
     leads: list[SourceLead] = []
     for query in queries:
@@ -231,14 +289,16 @@ def discover_serpapi(settings: Settings) -> list[SourceLead]:
         for result in results:
             if not isinstance(result, dict):
                 continue
+            link = _safe_str(result.get("link"))
             company, title = split_search_title(_safe_str(result.get("title")))
+            company = company or company_from_url(link)
             leads.append(
                 SourceLead(
                     source="SerpAPI targeted search",
                     title=title,
                     company=company,
-                    job_url=_safe_str(result.get("link")),
-                    apply_url=_safe_str(result.get("link")),
+                    job_url=link,
+                    apply_url=link,
                     description=_safe_str(result.get("snippet")),
                     posted_at=_safe_str(result.get("date")),
                     raw={"query": query, "result": result},
@@ -250,6 +310,16 @@ def discover_serpapi(settings: Settings) -> list[SourceLead]:
 def discover_serpapi_google_jobs(settings: Settings) -> list[SourceLead]:
     if not settings.serpapi_api_key:
         return []
+    region_queries = []
+    for region in settings.target_work_regions:
+        clean_region = region.strip()
+        if clean_region and clean_region.lower() not in {"worldwide", "global", "remote"}:
+            region_queries.extend(
+                [
+                    f"remote customer support {clean_region}",
+                    f"remote customer success {clean_region}",
+                ]
+            )
     queries = [
         "remote customer support worldwide",
         "remote customer success worldwide",
@@ -257,7 +327,15 @@ def discover_serpapi_google_jobs(settings: Settings) -> list[SourceLead]:
         "remote CRM specialist worldwide",
         "remote HubSpot specialist worldwide",
         "remote customer operations worldwide",
-    ]
+        "remote customer experience worldwide",
+        "remote client success worldwide",
+        "remote onboarding specialist worldwide",
+        "remote technical support worldwide",
+        "remote chat support worldwide",
+        "remote sales support worldwide",
+        "remote customer support Africa",
+        "remote customer success EMEA",
+    ] + region_queries
     leads: list[SourceLead] = []
     for query in queries:
         params = urlencode(

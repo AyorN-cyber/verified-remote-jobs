@@ -5,8 +5,10 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from datetime import timedelta
 from email.utils import parsedate_to_datetime
+import sys
 
 from .config import get_settings
+from .enrichment import enrich_company_links
 from .exporters import export_all
 from .models import CandidateProfile, SourceLead
 from .sources import discover_all
@@ -20,6 +22,7 @@ def main() -> None:
     parser.add_argument("--approved-only", action="store_true", help="Export only approved prospects.")
     parser.add_argument("--include-watchlist", action="store_true", help="Also review company careers pages. These cannot become approved job prospects by themselves.")
     parser.add_argument("--no-ai", action="store_true", help="Disable Claude enrichment for this run.")
+    parser.add_argument("--no-enrich", action="store_true", help="Skip company website/LinkedIn enrichment for faster broad scans.")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -33,15 +36,18 @@ def main() -> None:
         target_roles=settings.target_roles,
         strengths=settings.candidate_strengths,
     )
-    print("Discovering leads...")
+    safe_print("Discovering leads...")
     leads = discover_all(settings, include_watchlist=args.include_watchlist)
     leads = prioritize_leads([lead for lead in leads if lead.job_url])[: args.limit]
-    print(f"Discovered {len(leads)} leads to verify.")
+    safe_print(f"Discovered {len(leads)} leads to verify.")
 
     prospects = []
     for index, lead in enumerate(leads, start=1):
-        print(f"[{index}/{len(leads)}] Verifying: {lead.company or 'Unknown company'} - {lead.title}")
-        prospects.append(verify_lead(settings, lead, candidate))
+        safe_print(f"[{index}/{len(leads)}] Verifying: {lead.company or 'Unknown company'} - {lead.title}")
+        prospect = verify_lead(settings, lead, candidate)
+        if not args.no_enrich and prospect.status in {"approved", "manual_review"}:
+            prospect = enrich_company_links(settings, prospect)
+        prospects.append(prospect)
 
     if args.approved_only:
         prospects = [prospect for prospect in prospects if prospect.status == "approved"]
@@ -50,8 +56,13 @@ def main() -> None:
     approved = sum(1 for prospect in prospects if prospect.status == "approved")
     manual = sum(1 for prospect in prospects if prospect.status == "manual_review")
     rejected = sum(1 for prospect in prospects if prospect.status == "rejected")
-    print(f"Exported to: {settings.output_dir}")
-    print(f"Approved: {approved} | Manual review: {manual} | Rejected: {rejected}")
+    safe_print(f"Exported to: {settings.output_dir}")
+    safe_print(f"Approved: {approved} | Manual review: {manual} | Rejected: {rejected}")
+
+
+def safe_print(value: str) -> None:
+    encoding = sys.stdout.encoding or "utf-8"
+    print(value.encode(encoding, errors="replace").decode(encoding, errors="replace"))
 
 
 def prioritize_leads(leads: list[SourceLead]) -> list[SourceLead]:
@@ -70,7 +81,7 @@ def lead_priority(lead: SourceLead) -> tuple[int, float]:
         score += 300
     if has_role_match(text):
         score += 250
-    if any(term in text for term in ("worldwide", "anywhere", "global", "africa", "emea", "nigeria")):
+    if any(term in text for term in ("worldwide", "anywhere", "global", "africa", "emea")):
         score += 150
     if lead.apply_url:
         score += 75

@@ -26,6 +26,8 @@ def verify_lead(settings: Settings, lead: SourceLead, candidate: CandidateProfil
     full_text = normalize_text(" ".join([lead_text, job_page.text, apply_page.text]))
 
     eligibility_status, eligibility_evidence = find_global_eligibility(full_text)
+    if eligibility_status == "manual_review":
+        eligibility_status, eligibility_evidence = find_candidate_region_eligibility(full_text, candidate)
     scam_risk, scam_evidence = find_scam_risk(lead_text)
     role_match = has_role_match(full_text)
     official_status = check_official_source(lead, job_page.final_url, apply_page.final_url)
@@ -182,6 +184,16 @@ def build_fast_rejection(
         evidence_links="; ".join(filter(None, [lead.job_url, lead.apply_url, lead.company_url, lead.company_linkedin])),
         ai_notes="",
     )
+
+
+def find_candidate_region_eligibility(text: str, candidate: CandidateProfile) -> tuple[str, str]:
+    terms = [candidate.country, candidate.location, *candidate.target_work_regions]
+    lowered = text.lower()
+    for term in terms:
+        clean = (term or "").strip().lower()
+        if clean and len(clean) > 2 and clean in lowered:
+            return "eligible", clean
+    return "manual_review", "No explicit candidate-region or global eligibility language found."
 
 
 def check_freshness(lead: SourceLead, max_hours: int) -> tuple[str, str]:

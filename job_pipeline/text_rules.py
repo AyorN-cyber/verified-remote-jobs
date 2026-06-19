@@ -29,7 +29,6 @@ GLOBAL_ELIGIBILITY_TERMS = (
     "fully remote globally",
     "africa",
     "emea",
-    "nigeria",
 )
 
 RESTRICTED_LOCATION_PATTERNS = (
